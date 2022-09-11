@@ -204,7 +204,7 @@ impl Lichess {
         match res.status().into() {
             200 | 201 | 400 | 401 => {
                 while let Some(chunk) = res.body_mut().data().await {
-                    println!("async: {}", String::from_utf8(chunk.clone()??.to_vec())?);
+                    println!("async: {}", String::from_utf8(chunk.clone()?.to_vec())?);
                     out.push(String::from_utf8(chunk?.to_vec())?);
                 }
             },
