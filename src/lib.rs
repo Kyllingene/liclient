@@ -1,11 +1,10 @@
 #[allow(dead_code)]
 
-use hyper::body::HttpBody as _;
-use hyper_tls::HttpsConnector;
 use std::{error::Error, fmt};
+use std::thread;
+use std::sync::mpsc::channel;
 use serde_json::Value;
 use chessboard::{Color, ClockSettings};
-use async_stream::stream;
 
 pub type Response<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -36,43 +35,34 @@ impl Error for ApiError {}
 
 pub struct Lichess {
     key: String,
-    hclient: hyper::Client<hyper_tls::HttpsConnector<hyper::client::HttpConnector>>,
+    hclient: reqwest::Client,
 }
 
 impl Lichess {
     /// Make a new client with a Lichess API key
     pub fn new(key: String) -> Lichess {
-        let https = HttpsConnector::new();
-        let hclient = hyper::Client::builder()
-            .build::<_, hyper::Body>(https);
+        let hclient = reqwest::Client::new();
 
-        let mut auth_header = String::from("Bearer ");
-        auth_header.push_str(key.as_str());
+        // let mut auth_header = String::from("Bearer ");
+        // auth_header.push_str(key.as_str());
 
         Lichess{
-            key: auth_header,
+            key: key,
             hclient: hclient,
         }
     }
 
     /// Get a plaintext response from a server
     pub async fn get_raw(&self, url: String) -> Response<String> {            
-        let req = hyper::Request::builder()
-            .method(hyper::Method::GET)
-            .uri(url)
-            .header("Authorization", self.key.clone())
-            .body(hyper::Body::from(""))?;
+        let req = self.hclient.get(url)
+            .bearer_auth(self.key.clone())
+            .build()?;
 
-        let mut res = self.hclient.request(req).await?;
+        let res = self.hclient.execute(req).await?;
 
         match res.status().into() {
             200 | 201 | 400 | 401 => {
-                let mut body = String::new();
-                while let Some(chunk) = res.body_mut().data().await {
-                    body += String::from_utf8(chunk?.to_vec())?.as_str();
-                }
-    
-                Ok(body)
+                Ok(res.text().await?)
             },
 
             _ => return Err(Box::new(ApiError::new(res.status().as_u16()))),
@@ -86,23 +76,24 @@ impl Lichess {
 
     /// Post to a server
     pub async fn post(&self, url: String, body: String) -> Response<Value> {
-        let req = hyper::Request::builder()
-            .method(hyper::Method::POST)
-            .uri(url)
-            .header("Authorization", self.key.clone())
-            .header("content-type", "application/x-www-form-urlencoded")
-            .body(hyper::Body::from(body))?;
+        // let req = hyper::Request::builder()
+        //     .method(hyper::Method::POST)
+        //     .uri(url)
+        //     .header("Authorization", self.key.clone())
+        //     .header("content-type", "application/x-www-form-urlencoded")
+        //     .body(hyper::Body::from(body))?;
 
-        let mut res = self.hclient.request(req).await?;
+        let req = self.hclient.post(url)
+            .bearer_auth(self.key.clone())
+            .body(body)
+            .build()?;
+
+        let res = self.hclient.execute(req).await?;
 
         match res.status().into() {
             200 | 201 | 400 | 401 => {
-                let mut body = String::new();
-                while let Some(chunk) = res.body_mut().data().await {
-                    body += String::from_utf8(chunk?.to_vec())?.as_str();
-                }
     
-                Ok(serde_json::from_str(body.as_str())?)
+                Ok(serde_json::from_str(res.text().await?.as_str())?)
             },
 
             _ => return Err(Box::new(ApiError::new(res.status().as_u16()))),
@@ -187,30 +178,5 @@ impl Lichess {
         }
 
         panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})", line!());
-    }
-
-    /// Recieve a streamed response from a server
-    pub async fn get_stream(&self, url: String) -> Response<Stream> {
-        println!("making req");
-        let req = hyper::Request::builder()
-            .method(hyper::Method::GET)
-            .uri(url)
-            .header("Authorization", self.key.clone())
-            .body(hyper::Body::from(""))?;
-            
-        let mut res = self.hclient.request(req).await?;
-        println!("made req");
-
-        match res.status().into() {
-            200 | 201 | 400 | 401 => {
-                while let Some(chunk) = res.body_mut().data().await {
-                    out.push(String::from_utf8(chunk?.to_vec())?);
-                }
-            },
-
-            _ => return Err(Box::new(ApiError::new(res.status().as_u16()))),
-        }
-
-        Ok(())
     }
 }
