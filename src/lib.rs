@@ -198,7 +198,7 @@ impl Lichess {
             return Ok(id.clone())
         }
 
-        panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})", line!());
+        panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})\n response: {:?}", line!(), res);
     }
 
     /// Create a seek
