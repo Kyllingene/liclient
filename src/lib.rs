@@ -2,12 +2,10 @@
 
 use hyper::body::HttpBody as _;
 use hyper_tls::HttpsConnector;
-
 use std::{error::Error, fmt};
-
 use serde_json::Value;
-
 use chessboard::{Color, ClockSettings};
+
 
 pub type Response<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -42,6 +40,7 @@ pub struct Lichess {
 }
 
 impl Lichess {
+    /// Make a new client with a Lichess API key
     pub fn new(key: String) -> Lichess {
         let https = HttpsConnector::new();
         let hclient = hyper::Client::builder()
@@ -188,5 +187,28 @@ impl Lichess {
         }
 
         panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})", line!());
+    }
+
+    /// Recieve a streamed response from a server
+    pub async fn get_stream(&self, url: String, out: &mut Vec<String>) -> Response<()> {
+        let req = hyper::Request::builder()
+            .method(hyper::Method::GET)
+            .uri(url)
+            .header("Authorization", self.key.clone())
+            .body(hyper::Body::from(""))?;
+
+        let mut res = self.hclient.request(req).await?;
+
+        match res.status().into() {
+            200 | 201 | 400 | 401 => {
+                while let Some(chunk) = res.body_mut().data().await {
+                    out.push(String::from_utf8(chunk?.to_vec())?);
+                }
+            },
+
+            _ => return Err(Box::new(ApiError::new(res.status().as_u16()))),
+        }
+
+        Ok(())
     }
 }
