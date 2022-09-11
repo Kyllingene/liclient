@@ -78,14 +78,26 @@ impl Lichess {
     }
 
     /// Post to a server
-    pub async fn post(&self, url: String, body: String) -> Response<Value> {
-        // let req = hyper::Request::builder()
-        //     .method(hyper::Method::POST)
-        //     .uri(url)
-        //     .header("Authorization", self.key.clone())
-        //     .header("content-type", "application/x-www-form-urlencoded")
-        //     .body(hyper::Body::from(body))?;
+    pub async fn post_raw(&self, url: String, body: String) -> Response<String> {
+        let req = self.hclient.post(url)
+            .bearer_auth(self.key.clone())
+            .body(body)
+            .build()?;
 
+        let res = self.hclient.execute(req).await?;
+
+        match res.status().into() {
+            200 | 201 | 400 | 401 => {
+    
+                Ok(res.text().await?)
+            },
+
+            _ => return Err(Box::new(ApiError::new(res.status().as_u16()))),
+        }
+    }
+
+    /// Post to a server, returning json
+    pub async fn post(&self, url: String, body: String) -> Response<Value> {
         let req = self.hclient.post(url)
             .bearer_auth(self.key.clone())
             .body(body)
@@ -108,9 +120,14 @@ impl Lichess {
         self.get("https://lichess.org/api/".to_owned() + &endpoint).await
     }
 
-    /// Post to a Lichess api endpoint
+    /// Post to a Lichess api endpoint, returning json
     pub async fn post_api(&self, endpoint: String, body: String) -> Response<Value> {
         self.post("https://lichess.org/api/".to_owned() + &endpoint, body).await
+    }
+
+    /// Post to a Lichess api endpoint
+    pub async fn post_api_raw(&self, endpoint: String, body: String) -> Response<String> {
+        self.post_raw("https://lichess.org/api/".to_owned() + &endpoint, body).await
     }
 
     /// Get the email of your account
@@ -183,6 +200,58 @@ impl Lichess {
         panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})", line!());
     }
 
+    /// Create a seek
+    /// Requires `board:play` scope
+    pub async fn seek(&self, rated: bool, color: Color, clock: ClockSettings, initial: Option<String>) -> Response<Option<String>> {
+        let mut body = String::from("{");
+
+        match color {
+            Color::White  => body.push_str("color=white"),
+            Color::Black  => body.push_str("color=black"),
+            Color::Random => body.push_str("color=random"),
+        }
+
+        if rated {
+            body.push_str("&rated=true");
+        }
+
+        if clock.is_correspondence {
+            body.push_str(format!("&days={}", clock.days).as_str());
+        } else {
+            body.push_str(format!("time={}", clock.limit).as_str());
+            body.push_str(format!("increment={}", clock.increment).as_str());
+        }
+
+        if let Some(fen) = initial {
+            body.push_str(format!("&fen={}", fen).as_str());
+        }
+        
+        body.push_str("}\n");
+        let res = self.post_api_raw(String::from("api/board/seek"), body).await?;
+
+        if res.is_empty() {
+            return Ok(None);
+        } else {
+            return Ok(Some(res));
+        }
+    }
+
+    /// Make a move in a game
+    /// Requires `board:play` scope
+    pub async fn make_move(&self, id: String, m: String, draw: bool) -> Response<bool> {
+        let res = self.post_api(format!("board/game/{}/move/{}?offeringDraw={}", id, m, draw), String::new()).await?;
+        
+        if let Value::String(err) = &res["error"] {
+            return Err(String::from(err).into());
+        }
+
+        if let Value::Bool(ok) = &res["ok"] {
+            return Ok(*ok);
+        }
+
+        panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})", line!());
+    }
+
     /// Get a stream from a server
     pub async fn stream(&self, url: String) -> Response<impl Stream<Item = String>> {
         let res = self.hclient.get(url)
@@ -203,6 +272,7 @@ impl Lichess {
         ))
     }
 
+    /// Get an ndjson stream from a server
     pub async fn ndjson<T: DeserializeOwned>(&self, url: String) -> Response<impl Stream<Item = T>> {
         let res = self.hclient.get(url)
             .bearer_auth(self.key.clone())
@@ -222,7 +292,19 @@ impl Lichess {
         ))
     }
 
-    // TODO: consider other ErrorKind's
+    /// Get a listener to the Lichess event stream
+    /// Requires `challenge:read bot:play board:play` scopes
+    pub async fn events<T: DeserializeOwned>(&self) -> Response<impl Stream<Item = T>> {
+        self.ndjson("https://lichess.org/api/stream/event".to_string()).await
+    }
+
+    /// Get a listener to a board
+    /// Requires `board:play` scopre
+    pub async fn board<T: DeserializeOwned>(&self, id: String) -> Response<impl Stream<Item = T>> {
+        self.ndjson(format!("https://lichess.org/api/board/game/stream/{}", id)).await
+    }
+
+    ///  TODO: consider other ErrorKind's
     fn convert_err(e: reqwest::Error) -> std::io::Error {
         std::io::Error::new(std::io::ErrorKind::Other, e)
     }
