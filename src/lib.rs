@@ -5,7 +5,7 @@ use hyper_tls::HttpsConnector;
 use std::{error::Error, fmt};
 use serde_json::Value;
 use chessboard::{Color, ClockSettings};
-
+use async_stream::stream;
 
 pub type Response<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -190,7 +190,7 @@ impl Lichess {
     }
 
     /// Recieve a streamed response from a server
-    pub async fn get_stream(&self, url: String, out: &mut Vec<String>) -> Response<()> {
+    pub async fn get_stream(&self, url: String) -> Response<Stream> {
         println!("making req");
         let req = hyper::Request::builder()
             .method(hyper::Method::GET)
