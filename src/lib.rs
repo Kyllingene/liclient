@@ -191,13 +191,15 @@ impl Lichess {
 
     /// Recieve a streamed response from a server
     pub async fn get_stream(&self, url: String, out: &mut Vec<String>) -> Response<()> {
+        println!("making req");
         let req = hyper::Request::builder()
             .method(hyper::Method::GET)
             .uri(url)
             .header("Authorization", self.key.clone())
             .body(hyper::Body::from(""))?;
-
+            
         let mut res = self.hclient.request(req).await?;
+        println!("made req");
 
         match res.status().into() {
             200 | 201 | 400 | 401 => {
