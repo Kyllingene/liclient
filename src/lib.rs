@@ -252,6 +252,22 @@ impl Lichess {
         panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})", line!());
     }
 
+    /// Resign a game
+    /// Requires `board:play` scope
+    pub async fn resign(&self, id: String) -> Response<bool> {
+        let res = self.post_api(format!("board/game/{}/resign", id), String::new()).await?;
+        
+        if let Value::String(err) = &res["error"] {
+            return Err(String::from(err).into());
+        }
+
+        if let Value::Bool(ok) = &res["ok"] {
+            return Ok(*ok);
+        }
+
+        panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})", line!());
+    }
+
     /// Get a stream from a server
     pub async fn stream(&self, url: String) -> Response<impl Stream<Item = String>> {
         let res = self.hclient.get(url)
