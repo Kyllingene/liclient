@@ -40,6 +40,7 @@ impl fmt::Display for ApiError {
 
 impl Error for ApiError {}
 
+#[derive(Clone)]
 pub struct Lichess {
     key: String,
     hclient: reqwest::Client,
