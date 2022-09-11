@@ -239,7 +239,7 @@ impl Lichess {
 
     /// Make a move in a game
     /// Requires `board:play` scope
-    pub async fn make_move(&self, id: String, m: String, draw: bool) -> Response<bool> {
+    pub async fn make_move(&self, id: &String, m: String, draw: bool) -> Response<bool> {
         let res = self.post_api(format!("board/game/{}/move/{}?offeringDraw={}", id, m, draw), String::new()).await?;
         
         if let Value::String(err) = &res["error"] {
@@ -317,7 +317,7 @@ impl Lichess {
 
     /// Get a listener to a board
     /// Requires `board:play` scopre
-    pub async fn board<T: DeserializeOwned>(&self, id: String) -> Response<impl Stream<Item = T>> {
+    pub async fn board<T: DeserializeOwned>(&self, id: &String) -> Response<impl Stream<Item = T>> {
         self.ndjson(format!("https://lichess.org/api/board/game/stream/{}", id)).await
     }
 
