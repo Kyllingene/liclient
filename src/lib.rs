@@ -9,11 +9,9 @@ use tokio_util::io::StreamReader;
 use futures_util::stream::{Stream, StreamExt, TryStreamExt};
 
 use serde_json::Value;
-use serde::de::DeserializeOwned;
 use chessboard::{Color, ClockSettings};
 
 pub type Response<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
-pub type Test<T> = Result<T, serde_json::Error>; 
 
 #[derive(Debug)]
 pub struct ApiError {
