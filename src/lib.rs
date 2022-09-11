@@ -188,7 +188,7 @@ impl Lichess {
         }
         
         body.push_str("}\n");
-        let res = self.post_api(String::from("api/challenge/ai"), body).await?;
+        let res = self.post_api(String::from("challenge/ai"), body).await?;
 
         if let Value::String(err) = &res["error"] {
             return Err(String::from(err).into());
