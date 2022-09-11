@@ -1,8 +1,8 @@
 #[allow(dead_code)]
 
 use std::{error::Error, fmt};
-use std::thread;
-use std::sync::mpsc::channel;
+use reqwest_streams::*;
+use futures_util::stream::BoxStream;
 use serde_json::Value;
 use chessboard::{Color, ClockSettings};
 
@@ -178,5 +178,16 @@ impl Lichess {
         }
 
         panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})", line!());
+    }
+
+    /// Get an ndjson stream from a server
+    pub async fn ndjson<'a>(&self, url: String) -> Response<BoxStream<'a, StreamBodyResult<Value>>> {
+        let req = self.hclient.get(url)
+            .bearer_auth(self.key.clone())
+            .build()?;
+
+        Ok(self.hclient.execute(req)
+            .await?
+            .json_nl_stream::<Value>(1024))
     }
 }
