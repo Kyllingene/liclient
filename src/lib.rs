@@ -9,6 +9,8 @@ use tokio_util::io::StreamReader;
 use futures_util::stream::{Stream, StreamExt, TryStreamExt};
 
 use serde_json::Value;
+use serde::de::DeserializeOwned;
+
 use chessboard::{Color, ClockSettings};
 
 pub type Response<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -181,7 +183,6 @@ impl Lichess {
         panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})", line!());
     }
 
-    // XXX: REALLY CLEAN THIS UP
     /// Get a stream from a server
     pub async fn stream(&self, url: String) -> Response<impl Stream<Item = String>> {
         let res = self.hclient.get(url)
@@ -202,7 +203,27 @@ impl Lichess {
         ))
     }
 
+    pub async fn ndjson<T: DeserializeOwned>(&self, url: String) -> Response<impl Stream<Item = T>> {
+        let res = self.hclient.get(url)
+            .bearer_auth(self.key.clone())
+            .send()
+            .await?
+            .bytes_stream();
+
+        Ok(Box::pin(
+            LinesStream::new(StreamReader::new(res.map_err(Lichess::convert_err)).lines()).filter_map(|l| async move {
+                let line = l.ok()?;
+                if line.is_empty() {
+                    None
+                } else {
+                    serde_json::from_str(line.as_str()).ok()?
+                }
+            })
+        ))
+    }
+
+    // TODO: consider other ErrorKind's
     fn convert_err(e: reqwest::Error) -> std::io::Error {
-        todo!()
+        std::io::Error::new(std::io::ErrorKind::Other, e)
     }
 }
