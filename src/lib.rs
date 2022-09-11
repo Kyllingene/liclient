@@ -1,8 +1,9 @@
 #[allow(dead_code)]
 
 use std::{error::Error, fmt};
-use reqwest_streams::*;
-use futures_util::stream::BoxStream;
+use async_stream::stream;
+use futures_util::{stream::{Stream, StreamExt}};
+use bytes::Bytes;
 use serde_json::Value;
 use chessboard::{Color, ClockSettings};
 
@@ -180,14 +181,20 @@ impl Lichess {
         panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})", line!());
     }
 
-    /// Get an ndjson stream from a server
-    pub async fn ndjson<'a>(&self, url: String) -> Response<BoxStream<'a, StreamBodyResult<Value>>> {
+    /// Get a stream from a server
+    pub async fn stream<'a, T>(&self, url: String) -> Response<async_stream::AsyncStream<T, Bytes>> {
         let req = self.hclient.get(url)
             .bearer_auth(self.key.clone())
             .build()?;
 
-        Ok(self.hclient.execute(req)
+        let mut res = self.hclient.execute(req)
             .await?
-            .json_nl_stream::<Value>(1024))
+            .bytes_stream();
+
+        Ok(stream! {
+            for await value in res {
+                yield value?;
+            }
+        })
     }
 }
