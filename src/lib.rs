@@ -228,7 +228,7 @@ impl Lichess {
         }
         
         body.push_str("}\n");
-        let res = self.post_api_raw(String::from("api/board/seek"), body).await?;
+        let res = self.post_api_raw(String::from("board/seek"), body).await?;
 
         if res.is_empty() {
             return Ok(None);
