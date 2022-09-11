@@ -185,13 +185,11 @@ impl Lichess {
 
     // XXX: REALLY CLEAN THIS UP
     /// Get a stream from a server
-    pub async fn stream<T: DeserializeOwned>(&self, url: String) -> Test<impl Stream<Item = Test<T>>> {
+    pub async fn stream(&self, url: String) -> Response<impl Stream<Item = String>> {
         let res = self.hclient.get(url)
             .bearer_auth(self.key.clone())
             .send()
-            .await
-            .map_err(Lichess::convert_err)
-            .unwrap()
+            .await?
             .bytes_stream();
 
         Ok(Box::pin(
@@ -200,7 +198,7 @@ impl Lichess {
                 if line.is_empty() {
                     None
                 } else {
-                    Some(serde_json::from_str(&line))
+                    Some(line)
                 }
             })
         ))
