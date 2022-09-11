@@ -1,9 +1,8 @@
 #[allow(dead_code)]
 
 use std::{error::Error, fmt};
-use async_stream::stream;
-use futures_util::{stream::{Stream, StreamExt}};
-use bytes::Bytes;
+use async_stream::{try_stream, stream};
+use futures_util::stream::Stream;
 use serde_json::Value;
 use chessboard::{Color, ClockSettings};
 
@@ -181,20 +180,33 @@ impl Lichess {
         panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})", line!());
     }
 
-    /// Get a stream from a server
-    pub async fn stream<'a, T>(&self, url: String) -> Response<async_stream::AsyncStream<T, Bytes>> {
-        let req = self.hclient.get(url)
-            .bearer_auth(self.key.clone())
-            .build()?;
+    // /// Get a stream from a server
+    // pub async fn stream<'a>(&self, url: String) -> impl Stream<Item = Response<Response<String>>> {
+    //     try_stream! {
+    //         loop {
+    //             let req = self.hclient.get(url)
+    //                 .bearer_auth(self.key.clone())
+    //                 .build()?;
 
-        let mut res = self.hclient.execute(req)
-            .await?
-            .bytes_stream();
+    //             yield Ok(self.hclient.execute(req)
+    //                 .await?
+    //                 .text().await?);
+    //         }
+    //     }
+    // }
 
-        Ok(stream! {
-            for await value in res {
-                yield value?;
+    pub async fn odds() -> impl Stream<Item = Result<u32, ()>> {
+        stream! {
+            let mut i = 0;
+            loop {
+                if i % 2 == 0 {
+                    yield Ok(i);
+                } else {
+                    yield Err(());
+                }
+
+                i += 1;
             }
-        })
+        }
     }
 }

@@ -349,7 +349,6 @@ name = "liclient"
 version = "0.2.1"
 dependencies = [
  "async-stream",
- "bytes",
  "chessboard",
  "futures-util",
  "reqwest",
