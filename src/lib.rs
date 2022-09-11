@@ -1,12 +1,19 @@
-#[allow(dead_code)]
+#![allow(dead_code)]
 
 use std::{error::Error, fmt};
-use async_stream::{try_stream, stream};
-use futures_util::stream::Stream;
+
+use tokio::io::AsyncBufReadExt;
+use tokio_stream::wrappers::LinesStream;
+use tokio_util::io::StreamReader;
+
+use futures_util::stream::{Stream, StreamExt, TryStreamExt};
+
 use serde_json::Value;
+use serde::de::DeserializeOwned;
 use chessboard::{Color, ClockSettings};
 
-pub type Response<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+pub type Response<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
+pub type Test<T> = Result<T, serde_json::Error>; 
 
 #[derive(Debug)]
 pub struct ApiError {
@@ -41,14 +48,10 @@ pub struct Lichess {
 impl Lichess {
     /// Make a new client with a Lichess API key
     pub fn new(key: String) -> Lichess {
-        let hclient = reqwest::Client::new();
-
-        // let mut auth_header = String::from("Bearer ");
-        // auth_header.push_str(key.as_str());
 
         Lichess{
             key: key,
-            hclient: hclient,
+            hclient: reqwest::Client::new(),
         }
     }
 
@@ -180,33 +183,30 @@ impl Lichess {
         panic!("INTERNAL ERROR: something has gone horribly wrong (in client.rs: `fn ai`, line {})", line!());
     }
 
-    // /// Get a stream from a server
-    // pub async fn stream<'a>(&self, url: String) -> impl Stream<Item = Response<Response<String>>> {
-    //     try_stream! {
-    //         loop {
-    //             let req = self.hclient.get(url)
-    //                 .bearer_auth(self.key.clone())
-    //                 .build()?;
+    // XXX: REALLY CLEAN THIS UP
+    /// Get a stream from a server
+    pub async fn stream<T: DeserializeOwned>(&self, url: String) -> Test<impl Stream<Item = Test<T>>> {
+        let res = self.hclient.get(url)
+            .bearer_auth(self.key.clone())
+            .send()
+            .await
+            .map_err(Lichess::convert_err)
+            .unwrap()
+            .bytes_stream();
 
-    //             yield Ok(self.hclient.execute(req)
-    //                 .await?
-    //                 .text().await?);
-    //         }
-    //     }
-    // }
-
-    pub async fn odds() -> impl Stream<Item = Result<u32, ()>> {
-        stream! {
-            let mut i = 0;
-            loop {
-                if i % 2 == 0 {
-                    yield Ok(i);
+        Ok(Box::pin(
+            LinesStream::new(StreamReader::new(res.map_err(Lichess::convert_err)).lines()).filter_map(|l| async move {
+                let line = l.ok()?;
+                if line.is_empty() {
+                    None
                 } else {
-                    yield Err(());
+                    Some(serde_json::from_str(&line))
                 }
+            })
+        ))
+    }
 
-                i += 1;
-            }
-        }
+    fn convert_err(e: reqwest::Error) -> std::io::Error {
+        todo!()
     }
 }
