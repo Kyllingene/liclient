@@ -166,7 +166,7 @@ impl Lichess {
     /// Challenge the AI
     /// Requires `challenge:write` scope
     pub async fn ai(&self, level: i32, color: Color, clock: ClockSettings, initial: Option<String>) -> Response<String> {
-        let mut body = format!("level={}", level);
+        let mut body = format!("(level={}", level);
 
         if color == Color::White {
             body.push_str("&color=white");
@@ -185,6 +185,7 @@ impl Lichess {
             body.push_str(format!("&fen={}", fen).as_str());
         }
         
+        body.push_str(")\n");
         let res = self.post_api(String::from("challenge/ai"), body).await?;
 
         if let Value::Object(err) = &res["error"] {
