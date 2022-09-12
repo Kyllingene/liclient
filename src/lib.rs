@@ -141,15 +141,6 @@ impl Lichess {
         self.get_api("account".to_string()).await
     }
 
-    /// Check authentication by attempting to get account details
-    /// Requires no scopes
-    pub async fn auth(&self) -> Response<bool> {
-        self.account().await?;
-
-        // If the previous call didn't fail, then we must've gotten our account info back, which means we are authenticated
-        Ok(true)
-    }
-
     /// Challenge the AI
     /// Requires `challenge:write` scope
     pub async fn ai(&self, level: i32, color: Color, clock: ClockSettings, initial: Option<String>) -> Response<String> {
