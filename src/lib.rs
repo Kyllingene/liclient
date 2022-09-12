@@ -161,8 +161,8 @@ impl Lichess {
         if clock.is_correspondence {
             body.push_str(format!("&days={}", clock.days).as_str());
         } else {
-            body.push_str(format!("clock.limit={}", clock.limit).as_str());
-            body.push_str(format!("clock.increment={}", clock.increment).as_str());
+            body.push_str(format!("&clock.limit={}", clock.limit).as_str());
+            body.push_str(format!("&clock.increment={}", clock.increment).as_str());
         }
 
         if let Some(fen) = initial {
