@@ -136,8 +136,8 @@ impl Lichess {
     pub async fn email(&self) -> Response<String> {
         let res = self.get_api("account/email".into()).await?;
 
-        if let Value::String(err) = &res["error"] {
-            return Err(String::from(err).into());
+        if let Value::Object(err) = &res["error"] {
+            return Err(format!("{:?}", err));
         }
 
         if let Value::String(email) = &res["email"] {
@@ -187,8 +187,8 @@ impl Lichess {
         
         let res = self.post_api(String::from("challenge/ai"), body).await?;
 
-        if let Value::String(err) = &res["error"] {
-            return Err(String::from(err).into());
+        if let Value::Object(err) = &res["error"] {
+            return Err(format!("{:?}", err));
         }
 
         if let Value::String(id) = &res["id"] {
@@ -239,8 +239,8 @@ impl Lichess {
     pub async fn make_move(&self, id: &String, m: String, draw: bool) -> Response<bool> {
         let res = self.post_api(format!("board/game/{}/move/{}?offeringDraw={}", id, m, draw), String::new()).await?;
         
-        if let Value::String(err) = &res["error"] {
-            return Err(String::from(err).into());
+        if let Value::Object(err) = &res["error"] {
+            return Err(format!("{:?}", err));
         }
 
         if let Value::Bool(ok) = &res["ok"] {
@@ -255,8 +255,8 @@ impl Lichess {
     pub async fn resign(&self, id: String) -> Response<bool> {
         let res = self.post_api(format!("board/game/{}/resign", id), String::new()).await?;
         
-        if let Value::String(err) = &res["error"] {
-            return Err(String::from(err).into());
+        if let Value::Object(err) = &res["error"] {
+            return Err(format!("{:?}", err));
         }
 
         if let Value::Bool(ok) = &res["ok"] {
