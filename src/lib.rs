@@ -97,20 +97,7 @@ impl Lichess {
 
     /// Post to a server, returning json
     pub async fn post(&self, url: String, body: String) -> Response<Value> {
-        let res = self.hclient.post(url)
-            .bearer_auth(self.key.clone())
-            .body(body)
-            .send()
-            .await?;
-
-        match res.status().into() {
-            200 | 201 | 400 | 401 => {
-    
-                Ok(serde_json::from_str(res.text().await?.as_str())?)
-            },
-
-            _ => return Err(Box::new(ApiError::new(res.status().as_u16()))),
-        }
+        Ok(serde_json::from_str(self.post_raw(url, body).await?.as_str())?)
     }
 
     /// Get a Lichess api endpoint
