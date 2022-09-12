@@ -100,7 +100,8 @@ impl Lichess {
         let res = self.hclient.post(url)
             .bearer_auth(self.key.clone())
             .body(body)
-            .send().await?;
+            .send()
+            .await?;
 
         match res.status().into() {
             200 | 201 | 400 | 401 => {
