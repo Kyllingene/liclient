@@ -158,16 +158,16 @@ impl Lichess {
             body.push_str("&color=black");
         }
 
-        if clock.is_correspondence {
-            body.push_str(format!("&days={}", clock.days).as_str());
-        } else {
-            body.push_str(format!("&clock.limit={}", clock.limit).as_str());
-            body.push_str(format!("&clock.increment={}", clock.increment).as_str());
-        }
+        // if clock.is_correspondence {
+        //     body.push_str(format!("&days={}", clock.days).as_str());
+        // } else {
+        //     body.push_str(format!("&clock.limit={}", clock.limit).as_str());
+        //     body.push_str(format!("&clock.increment={}", clock.increment).as_str());
+        // }
 
-        if let Some(fen) = initial {
-            body.push_str(format!("&fen={}", fen).as_str());
-        }
+        // if let Some(fen) = initial {
+        //     body.push_str(format!("&fen={}", fen).as_str());
+        // }
         
         // body.push_str(")\n");
         let res = self.post_api(String::from("challenge/ai"), body).await?;
