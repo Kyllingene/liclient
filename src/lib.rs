@@ -79,12 +79,11 @@ impl Lichess {
 
     /// Post to a server
     pub async fn post_raw(&self, url: String, body: String) -> Response<String> {
-        let req = self.hclient.post(url)
+        let res = self.hclient.post(url)
             .bearer_auth(self.key.clone())
             .body(body)
-            .build()?;
-
-        let res = self.hclient.execute(req).await?;
+            .send()
+            .await?;
 
         match res.status().into() {
             200 | 201 | 400 | 401 => {
