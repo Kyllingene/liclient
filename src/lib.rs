@@ -60,7 +60,8 @@ impl Lichess {
     pub async fn get_raw(&self, url: String) -> Response<String> {            
         let res = self.hclient.get(url)
             .bearer_auth(self.key.clone())
-            .send.await?;
+            .send()
+            .await?;
 
         match res.status().into() {
             200 | 201 | 400 | 401 => {
