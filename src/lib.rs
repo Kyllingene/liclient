@@ -137,7 +137,7 @@ impl Lichess {
         let res = self.get_api("account/email".into()).await?;
 
         if let Value::Object(err) = &res["error"] {
-            return Err(format!("{:?}", err));
+            return Err(format!("{:?}", err).into());
         }
 
         if let Value::String(email) = &res["email"] {
@@ -188,7 +188,7 @@ impl Lichess {
         let res = self.post_api(String::from("challenge/ai"), body).await?;
 
         if let Value::Object(err) = &res["error"] {
-            return Err(format!("{:?}", err));
+            return Err(format!("{:?}", err).into());
         }
 
         if let Value::String(id) = &res["id"] {
@@ -240,7 +240,7 @@ impl Lichess {
         let res = self.post_api(format!("board/game/{}/move/{}?offeringDraw={}", id, m, draw), String::new()).await?;
         
         if let Value::Object(err) = &res["error"] {
-            return Err(format!("{:?}", err));
+            return Err(format!("{:?}", err).into());
         }
 
         if let Value::Bool(ok) = &res["ok"] {
@@ -256,7 +256,7 @@ impl Lichess {
         let res = self.post_api(format!("board/game/{}/resign", id), String::new()).await?;
         
         if let Value::Object(err) = &res["error"] {
-            return Err(format!("{:?}", err));
+            return Err(format!("{:?}", err).into());
         }
 
         if let Value::Bool(ok) = &res["ok"] {
