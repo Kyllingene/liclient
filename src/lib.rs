@@ -79,12 +79,10 @@ impl Lichess {
 
     /// Post to a server
     pub async fn post_raw(&self, url: String, body: String) -> Response<String> {
-        let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert(reqwest::header::CONTENT_TYPE, "application/x-www-form-urlencoded".parse()?);
         let res = self.hclient.post(url)
             .bearer_auth(self.key.clone())
             .body(body)
-            .headers(headers)
+            .header("content-type", "application/x-www-form-urlencoded")
             .send()
             .await?;
 
