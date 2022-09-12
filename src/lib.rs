@@ -169,7 +169,7 @@ impl Lichess {
         //     body.push_str(format!("&fen={}", fen).as_str());
         // }
         
-        // body.push_str(")\n");
+        body.push_str("\n");
         let res = self.post_api(String::from("challenge/ai"), body).await?;
 
         if let Value::Object(err) = &res["error"] {
