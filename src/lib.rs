@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
-use std::{error::Error, fmt};
+use std::error::Error;
+use std::fmt;
 
 use tokio::io::AsyncBufReadExt;
 use tokio_stream::wrappers::LinesStream;
@@ -18,17 +19,12 @@ pub type Response<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 #[derive(Debug)]
 pub struct ApiError {
     code: u16,
+    msg: Value,
 }
 
 impl ApiError {
-    pub fn new(code: u16) -> ApiError {
-        ApiError{ code }
-    }
-
-    pub fn from_string(code: String) -> ApiError {
-        ApiError{
-            code: code.parse::<u16>().unwrap()
-        }
+    pub fn new(code: u16, msg: Value) -> ApiError {
+        ApiError{ code, msg }
     }
 }
 
@@ -63,12 +59,21 @@ impl Lichess {
             .send()
             .await?;
 
-        match res.status().into() {
-            200 | 201 | 400 | 401 => {
-                Ok(res.text().await?)
+        let status = res.status().as_u16();
+        let msg = res.text().await?;
+
+        match status {
+            200 | 201 => {
+                Ok(msg)
             },
 
-            _ => return Err(Box::new(ApiError::new(res.status().as_u16()))),
+            _ => {
+                if msg.is_empty() {
+                    return Err(Box::new(ApiError::new(status, Value::Null)));
+                }
+
+                return Err(Box::new(ApiError::new(status, serde_json::from_str(msg.as_str())?)));
+            },
         }
     }
 
@@ -86,13 +91,23 @@ impl Lichess {
             .send()
             .await?;
 
-        match res.status().into() {
-            200 | 201 | 400 | 401 => {
-    
-                Ok(res.text().await?)
+        let status = res.status().as_u16();
+        let msg = res.text().await?;
+
+        
+
+        match status {
+            200 | 201 => {
+                Ok(msg)
             },
 
-            _ => return Err(Box::new(ApiError::new(res.status().as_u16()))),
+            _ => {
+                if msg.is_empty() {
+                    return Err(Box::new(ApiError::new(status, Value::Null)));
+                }
+
+                return Err(Box::new(ApiError::new(status, serde_json::from_str(msg.as_str())?)));
+            },
         }
     }
 
