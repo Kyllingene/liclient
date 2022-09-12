@@ -82,7 +82,7 @@ impl Lichess {
         let res = self.hclient.post(url)
             .bearer_auth(self.key.clone())
             .body(body)
-            .header("content-type", "application/x-www-form-urlencoded")
+            .header("content-type", String::from("application/x-www-form-urlencoded"))
             .send()
             .await?;
 
