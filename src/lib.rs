@@ -297,7 +297,7 @@ impl Lichess {
         ))
     }
 
-    /// Get a listener to the Lichess event stream
+    /// Get a listener to the Lichess events stream
     /// Requires `challenge:read bot:play board:play` scopes
     pub async fn events<T: DeserializeOwned>(&self) -> Response<impl Stream<Item = T>> {
         self.ndjson("https://lichess.org/api/stream/event".to_string()).await
