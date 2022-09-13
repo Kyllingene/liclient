@@ -306,6 +306,7 @@ impl Lichess {
     /// Get a listener to a board
     /// Requires `board:play` scopre
     pub async fn board<T: DeserializeOwned>(&self, id: &String) -> Response<impl Stream<Item = T>> {
+        println!("https://lichess.org/api/board/game/stream/{}", id);
         self.ndjson(format!("https://lichess.org/api/board/game/stream/{}", id)).await
     }
 
