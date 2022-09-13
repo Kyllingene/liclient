@@ -309,7 +309,7 @@ impl Lichess {
         self.ndjson(format!("https://lichess.org/api/board/game/stream/{}", id)).await
     }
 
-    ///  TODO: consider other ErrorKind's
+    // TODO: consider other ErrorKind's
     fn convert_err(e: reqwest::Error) -> std::io::Error {
         std::io::Error::new(std::io::ErrorKind::Other, e)
     }
