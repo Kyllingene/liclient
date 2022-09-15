@@ -159,9 +159,10 @@ impl Lichess {
     pub async fn ai(&self, level: i32, color: Color, clock: ClockSettings, initial: Option<String>) -> Response<String> {
         let mut body = format!("level={}", level);
 
+        color.unwrap();
         if color == Color::White {
             body.push_str("&color=white");
-        } else {
+        } else if color == Color::Black {
             body.push_str("&color=black");
         }
 
@@ -198,6 +199,7 @@ impl Lichess {
             Color::White  => body.push_str("color=white"),
             Color::Black  => body.push_str("color=black"),
             Color::Random => body.push_str("color=random"),
+            Color::Invalid => return Err(String::from("Invalid color (Color::Invalid)").into()),
         }
 
         if rated {
