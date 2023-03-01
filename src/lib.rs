@@ -12,9 +12,18 @@ use futures_util::stream::{Stream, StreamExt, TryStreamExt};
 use serde_json::Value;
 use serde::de::DeserializeOwned;
 
-use chessboard::{Color, ClockSettings};
+use chessboard::Color;
 
 pub type Response<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClockSettings {
+    is_correspondence: bool,
+
+    days: u32,
+    limit: u32,
+    increment: u32,
+}
 
 #[derive(Debug)]
 pub struct ApiError {
@@ -159,7 +168,6 @@ impl Lichess {
     pub async fn ai(&self, level: i32, color: Color, clock: ClockSettings, initial: Option<String>) -> Response<String> {
         let mut body = format!("level={}", level);
 
-        color.unwrap();
         if color == Color::White {
             body.push_str("&color=white");
         } else if color == Color::Black {
@@ -192,14 +200,13 @@ impl Lichess {
 
     /// Create a seek
     /// Requires `board:play` scope
-    pub async fn seek(&self, rated: bool, color: Color, clock: ClockSettings, initial: Option<String>) -> Response<Option<String>> {
+    pub async fn seek(&self, rated: bool, color: Option<Color>, clock: ClockSettings, initial: Option<String>) -> Response<Option<String>> {
         let mut body = String::from("{");
 
         match color {
-            Color::White  => body.push_str("color=white"),
-            Color::Black  => body.push_str("color=black"),
-            Color::Random => body.push_str("color=random"),
-            Color::Invalid => return Err(String::from("Invalid color (Color::Invalid)").into()),
+            Some(Color::White)  => body.push_str("color=white"),
+            Some(Color::Black)  => body.push_str("color=black"),
+            None => body.push_str("color=random"),
         }
 
         if rated {
