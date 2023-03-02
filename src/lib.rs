@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::error::Error;
 use std::fmt;
 
@@ -39,7 +37,11 @@ impl ApiError {
 
 impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "HTTP request returned bad code: {}\n", self.code)
+        writeln!(
+            f,
+            "HTTP request returned bad code: {}\nmessage: {:#?}",
+            self.code, self.msg
+        )
     }
 }
 
@@ -135,19 +137,19 @@ impl Lichess {
 
     /// Get a Lichess api endpoint
     pub async fn get_api(&self, endpoint: String) -> Response<Value> {
-        self.get("https://lichess.org/api/".to_owned() + &endpoint)
+        self.get(format!("https://lichess.org/api/{endpoint}"))
             .await
     }
 
     /// Post to a Lichess api endpoint, returning json
     pub async fn post_api(&self, endpoint: String, body: String) -> Response<Value> {
-        self.post("https://lichess.org/api/".to_owned() + &endpoint, body)
+        self.post(format!("https://lichess.org/api/{endpoint}"), body)
             .await
     }
 
     /// Post to a Lichess api endpoint
     pub async fn post_api_raw(&self, endpoint: String, body: String) -> Response<String> {
-        self.post_raw("https://lichess.org/api/".to_owned() + &endpoint, body)
+        self.post_raw(format!("https://lichess.org/api/{endpoint}"), body)
             .await
     }
 
@@ -157,7 +159,7 @@ impl Lichess {
         let res = self.get_api("account/email".into()).await?;
 
         if let Value::Object(err) = &res["error"] {
-            return Err(format!("{:?}", err).into());
+            return Err(format!("{err:?}").into());
         }
 
         if let Value::String(email) = &res["email"] {
@@ -185,7 +187,7 @@ impl Lichess {
         clock: ClockSettings,
         initial: Option<String>,
     ) -> Response<String> {
-        let mut body = format!("level={}", level);
+        let mut body = format!("level={level}");
 
         if color == Color::White {
             body.push_str("&color=white");
@@ -201,13 +203,13 @@ impl Lichess {
         }
 
         if let Some(fen) = initial {
-            body.push_str(format!("&fen={}", fen).as_str());
+            body.push_str(format!("&fen={fen}").as_str());
         }
 
         let res = self.post_api(String::from("challenge/ai"), body).await?;
 
         if let Value::Object(err) = &res["error"] {
-            return Err(format!("{:?}", err).into());
+            return Err(format!("{err:?}").into());
         }
 
         if let Value::String(id) = &res["id"] {
@@ -246,16 +248,16 @@ impl Lichess {
         }
 
         if let Some(fen) = initial {
-            body.push_str(format!("&fen={}", fen).as_str());
+            body.push_str(format!("&fen={fen}").as_str());
         }
 
         body.push_str("}\n");
         let res = self.post_api_raw(String::from("board/seek"), body).await?;
 
         if res.is_empty() {
-            return Ok(None);
+            Ok(None)
         } else {
-            return Ok(Some(res));
+            Ok(Some(res))
         }
     }
 
@@ -270,7 +272,7 @@ impl Lichess {
             .await?;
 
         if let Value::Object(err) = &res["error"] {
-            return Err(format!("{:?}", err).into());
+            return Err(format!("{err:?}").into());
         }
 
         if let Value::Bool(ok) = &res["ok"] {
@@ -291,7 +293,7 @@ impl Lichess {
             .await?;
 
         if let Value::Object(err) = &res["error"] {
-            return Err(format!("{:?}", err).into());
+            return Err(format!("{err:?}").into());
         }
 
         if let Value::Bool(ok) = &res["ok"] {
@@ -363,7 +365,7 @@ impl Lichess {
     /// Get a listener to a board event stream
     /// Requires `board:play` scopre
     pub async fn board<T: DeserializeOwned>(&self, id: &String) -> Response<impl Stream<Item = T>> {
-        self.ndjson(format!("https://lichess.org/api/board/game/stream/{}", id))
+        self.ndjson(format!("https://lichess.org/api/board/game/stream/{id}"))
             .await
     }
 
