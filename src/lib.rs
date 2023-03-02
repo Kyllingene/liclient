@@ -18,11 +18,11 @@ pub type Response<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ClockSettings {
-    is_correspondence: bool,
+    pub is_correspondence: bool,
+    pub days: u32,
 
-    days: u32,
-    limit: u32,
-    increment: u32,
+    pub limit: u32,
+    pub increment: u32,
 }
 
 #[derive(Debug)]
